@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5要素スロット＆おすすめサイト</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
+        h1 { text-align: center; font-size: 1.5rem; color: #0071e3; }
+        h2 { font-size: 1.1rem; margin-top: 0; color: #86868b; border-bottom: 1px solid #d2d2d7; padding-bottom: 8px; text-align: left; }
+        
+        /* スロットのデザイン */
+        .slot-container { display: flex; justify-content: space-between; gap: 5px; margin: 20px 0; }
+        .slot-box { flex: 1; background: #2c2c2e; color: #fff; height: 70px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; padding: 5px; overflow: hidden; word-break: break-all; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); border: 2px solid transparent; transition: border 0.2s; }
+        .slot-box.active { border-color: #0071e3; background: #1c1c1e; }
+        
+        .result-box { background: #f2f2f7; min-height: 60px; padding: 15px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 15px 0; word-break: break-all; }
+        .final-result { background: #e5f1ff; color: #0071e3; border: 2px dashed #0071e3; }
+        
+        button { background: #0071e3; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; box-sizing: border-box; }
+        button.stop-mode { background: #ff9500; }
+        button.stop-mode:active { background: #c77300; }
+        button:active { background: #0051a2; }
+        button:disabled { background: #d2d2d7; cursor: not-allowed; }
+        
+        /* いいねボタン */
+        .like-btn { background: #ff3b30; margin-top: 10px; font-size: 0.9rem; padding: 8px 16px; width: auto; display: inline-flex; align-items: center; gap: 5px; }
+        .like-btn:active { background: #c92a2a; }
+        .like-btn:disabled { background: #8e8e93; opacity: 0.6; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <h1>✨ 5要素スロット＆ランダムシアター ✨</h1>
+
+    <!-- 1. ランダムおすすめ表示エリア -->
+    <div class="card">
+        <h2>📌 今日のおすすめ（既存の文からランダム）</h2>
+        <div id="recommend-box" class="result-box">データを読み込み中...</div>
+        <button id="like-button" class="like-btn" onclick="sendLike()" disabled>❤️ いいね！ (<span id="like-count">0</span>)</button>
+    </div>
+
+    <!-- 2. スロット抽選エリア -->
+    <div class="card">
+        <h2>🎰 5要素スロット</h2>
+        <div class="slot-container">
+            <div id="slot-when" class="slot-box">いつ</div>
+            <div id="slot-where" class="slot-box">どこで</div>
+            <div id="slot-who" class="slot-box">誰が</div>
+            <div id="slot-what" class="slot-box">何を</div>
+            <div id="slot-how" class="slot-box">どうした</div>
+        </div>
+        <button id="slot-trigger" onclick="handleSlotBtn()">スロットを回す</button>
+        
+        <!-- 全体文の表示場所（最初は非表示） -->
+        <div id="final-result-container" style="display: none; margin-top: 20px;">
+            <h3 style="font-size: 1rem; color: #86868b; text-align: left; margin-bottom: 5px;">📝 完成した文章</h3>
+            <div id="final-text" class="result-box final-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzE_tkE-tBV-Z8irt4Mkz7jWIAqK5fjaWdk-1ijXb6wnOxtu8XY5K1OxAe8mKrM8v_J/exec";
+
+        let textData = [];
+        let currentRecommendRow = null; 
+
+        let isRunning = false;
+        let currentStopIndex = 0; 
+        let intervals = [null, null, null, null, null];
+        const ids = ['slot-when', 'slot-where', 'slot-who', 'slot-what', 'slot-how'];
+        const keys = ['when', 'where', 'who', 'what', 'how'];
+        let finalWords = ['', '', '', '', ''];
+
+        async function fetchWords() {
+            try {
+                const response = await fetch(GAS_URL);
+                textData = await response.json();
+                
+                if(textData.length > 0) {
+                    showRandomRecommend();
+                } else {
+                    document.getElementById('recommend-box').innerText = "データが空っぽです";
+                }
+            } catch (error) {
+                document.getElementById('recommend-box').innerText = "データの読み込みに失敗しました";
+            }
+        }
+
+        function showRandomRecommend() {
+            currentRecommendRow = textData[Math.floor(Math.random() * textData.length)];
+            const r = currentRecommendRow;
+            document.getElementById('recommend-box').innerText = `${r.when}${r.where}${r.who}${r.what}${r.how}`;
+            document.getElementById('like-count').innerText = r.likes;
+            
+            if (localStorage.getItem('liked_row_' + r.id)) {
+                document.getElementById('like-button').innerHTML = "❤️ いいね済み (" + r.likes + ")";
+                document.getElementById('like-button').disabled = true;
+            } else {
+                document.getElementById('like-button').innerHTML = '❤️ いいね！ (<span id="like-count">' + r.likes + '</span>)';
+                document.getElementById('like-button').disabled = false;
+            }
+        }
+
+        async function sendLike() {
+            if (!currentRecommendRow) return;
+            const targetId = currentRecommendRow.id;
+            if (localStorage.getItem('liked_row_' + targetId)) return; 
+            
+            document.getElementById('like-button').disabled = true;
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ id: targetId })
+                });
+                const resData = await response.json();
+                if(resData.status === "success") {
+                    document.getElementById('like-count').innerText = resData.likes;
+                    currentRecommendRow.likes = resData.likes;
+                    localStorage.setItem('liked_row_' + targetId, 'true');
+                    document.getElementById('like-button').innerHTML = "❤️ いいね済み (" + resData.likes + ")";
+                }
+            } catch (error) {
+                alert("いいねの送信に失敗しました");
+                document.getElementById('like-button').disabled = false;
+            }
+        }
+
+        function handleSlotBtn() {
+            if (!isRunning) {
+                startAllSlots();
+            } else {
+                stopNextSlot();
+            }
+        }
+
+        function startAllSlots() {
+            if (textData.length === 0) return alert("データがありません");
+            
+            isRunning = true;
+            currentStopIndex = 0;
+            document.getElementById('final-result-container').style.display = 'none'; 
+            
+            const btn = document.getElementById('slot-trigger');
+            btn.innerText = "ストップ！ (いつ)";
+            btn.classList.add('stop-mode');
+
+            ids.forEach((id, i) => {
+                document.getElementById(id).classList.remove('active');
+                intervals[i] = setInterval(() => {
+                    const randomRow = textData[Math.floor(Math.random() * textData.length)];
+                    document.getElementById(id).innerText = randomRow[keys[i]] || "ー";
+                }, 60);
+            });
+            
+            document.getElementById(ids[0]).classList.add('active');
+        }
+
+        function stopNextSlot() {
+            let i = currentStopIndex;
+            clearInterval(intervals[i]); 
+            
+            const finalRow = textData[Math.floor(Math.random() * textData.length)];
+            const word = finalRow[keys[i]] || "";
+            document.getElementById(ids[i]).innerText = word;
+            document.getElementById(ids[i]).classList.remove('active');
+            finalWords[i] = word;
+
+            currentStopIndex++;
+
+            const btn = document.getElementById('slot-trigger');
+            
+            if (currentStopIndex < ids.length) {
+                let nextId = ids[currentStopIndex];
+                document.getElementById(nextId).classList.add('active');
+                
+                // 【修正部分】ボタンに次に止まるスロットの名前を正しく表示させるよう修正
+                const nextLabels = ["どこで", "誰が", "何を", "どうした"];
+                btn.innerText = `ストップ！ (${nextLabels[currentStopIndex - 1]})`;
+            } else {
+                isRunning = false;
+                btn.innerText = "スロットを回す";
+                btn.classList.remove('stop-mode');
+                
+                const fullText = finalWords.join('');
+                document.getElementById('final-text').innerText = fullText;
+                document.getElementById('final-result-container').style.display = 'block';
+            }
+        }
+
+        window.onload = fetchWords;
+    </script>
+</body>
+</html>
