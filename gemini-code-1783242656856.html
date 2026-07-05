@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5要素スロット＆おすすめサイト</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .card { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
+        h1 { text-align: center; font-size: 1.5rem; color: #0071e3; }
+        h2 { font-size: 1.1rem; margin-top: 0; color: #86868b; border-bottom: 1px solid #d2d2d7; padding-bottom: 8px; text-align: left; }
+        
+        /* スロットのデザイン */
+        .slot-container { display: flex; justify-content: space-between; gap: 5px; margin: 20px 0; }
+        .slot-box { flex: 1; background: #2c2c2e; color: #fff; height: 70px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; padding: 5px; overflow: hidden; word-break: break-all; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        
+        .result-box { background: #f2f2f7; min-height: 60px; padding: 15px; border-radius: 8px; font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; margin: 15px 0; word-break: break-all; }
+        
+        button { background: #0071e3; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; box-sizing: border-box; }
+        button:active { background: #0051a2; }
+        button:disabled { background: #d2d2d7; cursor: not-transform; }
+        
+        /* いいねボタン */
+        .like-btn { background: #ff3b30; margin-top: 10px; font-size: 0.9rem; padding: 8px 16px; width: auto; display: inline-flex; align-items: center; gap: 5px; }
+        .like-btn:active { background: #c92a2a; }
+    </style>
+</head>
+<body>
+
+    <h1>✨ 5要素スロット＆ランダムシアター ✨</h1>
+
+    <div class="card">
+        <h2>📌 今日のおすすめ（既存の文からランダム）</h2>
+        <div id="recommend-box" class="result-box">データを読み込み中...</div>
+        <button id="like-button" class="like-btn" onclick="sendLike()" disabled>❤️ いいね！ (<span id="like-count">0</span>)</button>
+    </div>
+
+    <div class="card">
+        <h2>🎰 5要素スロット</h2>
+        <div class="slot-container">
+            <div id="slot-when" class="slot-box">いつ</div>
+            <div id="slot-where" class="slot-box">どこで</div>
+            <div id="slot-who" class="slot-box">誰が</div>
+            <div id="slot-what" class="slot-box">何を</div>
+            <div id="slot-how" class="slot-box">どうした</div>
+        </div>
+        <button id="slot-trigger" onclick="startSlot()">スロットを回す</button>
+    </div>
+
+    <script>
+        // 【重要】ここにスプシ（GAS）のWebアプリURLを貼り付けてください
+        const GAS_URL = "ここにあなたのWebアプリURLを貼り付ける";
+
+        let textData = [];
+        let currentRecommendRow = null; // 現在おすすめ表示されている行のデータ
+
+        // データを取得
+        async function fetchWords() {
+            try {
+                const response = await fetch(GAS_URL);
+                textData = await response.json();
+                
+                if(textData.length > 0) {
+                    showRandomRecommend();
+                } else {
+                    document.getElementById('recommend-box').innerText = "データが空っぽです";
+                }
+            } catch (error) {
+                document.getElementById('recommend-box').innerText = "データの読み込みに失敗しました";
+            }
+        }
+
+        // 既存の文からランダムにおすすめを表示する
+        function showRandomRecommend() {
+            currentRecommendRow = textData[Math.floor(Math.random() * textData.length)];
+            const r = currentRecommendRow;
+            document.getElementById('recommend-box').innerText = `${r.when}${r.where}${r.who}${r.what}${r.how}`;
+            document.getElementById('like-count').innerText = r.likes;
+            document.getElementById('like-button').disabled = false;
+        }
+
+        // いいねをスプシに送信する（全員分が保存される）
+        async function sendLike() {
+            if (!currentRecommendRow) return;
+            document.getElementById('like-button').disabled = true;
+            
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ id: currentRecommendRow.id })
+                });
+                const resData = await response.json();
+                if(resData.status === "success") {
+                    document.getElementById('like-count').innerText = resData.likes;
+                    // ローカルのデータも更新しておく
+                    currentRecommendRow.likes = resData.likes;
+                }
+            } catch (error) {
+                alert("いいねの送信に失敗しました");
+            } finally {
+                document.getElementById('like-button').disabled = false;
+            }
+        }
+
+        // スロット機能（1つずつ時間差で止まる）
+        function startSlot() {
+            if (textData.length === 0) return alert("データがありません");
+            
+            const btn = document.getElementById('slot-trigger');
+            btn.disabled = true;
+            
+            const ids = ['slot-when', 'slot-where', 'slot-who', 'slot-what', 'slot-how'];
+            const keys = ['when', 'where', 'who', 'what', 'how'];
+            let intervals = [];
+
+            // 全スロットを高速回転させる
+            ids.forEach((id, i) => {
+                intervals[i] = setInterval(() => {
+                    const randomRow = textData[Math.floor(Math.random() * textData.length)];
+                    document.getElementById(id).innerText = randomRow[keys[i]] || "ー";
+                }, 80);
+            });
+
+            // 左から順番（0.5秒ごと）にストップさせる
+            ids.forEach((id, i) => {
+                setTimeout(() => {
+                    clearInterval(intervals[i]);
+                    // 最終確定値
+                    const finalRow = textData[Math.floor(Math.random() * textData.length)];
+                    document.getElementById(id).innerText = finalRow[keys[i]] || "ー";
+                    
+                    // すべて止まったらボタンを復活
+                    if(i === ids.length - 1) {
+                        btn.disabled = false;
+                    }
+                }, 500 * (i + 1));
+            });
+        }
+
+        window.onload = fetchWords;
+    </script>
+</body>
+</html>
