@@ -38,7 +38,7 @@
     <div class="card">
         <h2>今日のおすすめ（既存の文からランダム）</h2>
         <div id="recommend-box" class="result-box">データを読み込み中...</div>
-        <button id="like-button" class="like-btn" onclick="sendLike()" disabled>❤️ いいね！ (<span id="like-count">0</span>)</button>
+        <button id="like-button" class="like-btn" onclick="sendLike()" disabled>いいね！ (<span id="like-count">0</span>)</button>
     </div>
 
     <!-- 2. スロット抽選エリア -->
@@ -55,13 +55,13 @@
         
         <!-- 全体文の表示場所（最初は非表示） -->
         <div id="final-result-container" style="display: none; margin-top: 20px;">
-            <h3 style="font-size: 1rem; color: #86868b; text-align: left; margin-bottom: 5px;">📝 完成した文章</h3>
+            <h3 style="font-size: 1rem; color: #86868b; text-align: left; margin-bottom: 5px;">完成した文章</h3>
             <div id="final-text" class="result-box final-result"></div>
         </div>
     </div>
 
     <script>
-        const GAS_URL ="https://script.google.com/macros/s/AKfycbziIKaean32zWv1gfVv0BkRMizyqbkACIXz4FrZNjh2RnhWWLJRuO-j5BycDX9rvarG/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbziIKaean32zWv1gfVv0BkRMizyqbkACIXz4FrZNjh2RnhWWLJRuO-j5BycDX9rvarG/exec";
 
         let textData = [];
         let currentRecommendRow = null; 
@@ -95,10 +95,10 @@
             document.getElementById('like-count').innerText = r.likes;
             
             if (localStorage.getItem('liked_row_' + r.id)) {
-                document.getElementById('like-button').innerHTML = "❤️ いいね済み (" + r.likes + ")";
+                document.getElementById('like-button').innerHTML = "いいね済み (" + r.likes + ")";
                 document.getElementById('like-button').disabled = true;
             } else {
-                document.getElementById('like-button').innerHTML = '❤️ いいね！ (<span id="like-count">' + r.likes + '</span>)';
+                document.getElementById('like-button').innerHTML = 'いいね！ (<span id="like-count">' + r.likes + '</span>)';
                 document.getElementById('like-button').disabled = false;
             }
         }
@@ -120,7 +120,7 @@
                     document.getElementById('like-count').innerText = resData.likes;
                     currentRecommendRow.likes = resData.likes;
                     localStorage.setItem('liked_row_' + targetId, 'true');
-                    document.getElementById('like-button').innerHTML = "❤️ いいね済み (" + resData.likes + ")";
+                    document.getElementById('like-button').innerHTML = "いいね済み (" + resData.likes + ")";
                 }
             } catch (error) {
                 alert("いいねの送信に失敗しました");
